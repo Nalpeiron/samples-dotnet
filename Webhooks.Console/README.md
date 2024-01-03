@@ -1,17 +1,16 @@
 ﻿This is a simple console application that demonstrates how you can integrate with the Zentitle2 Webhooks.
 
 ### Run the application on your localhost
-1. Install [localtunnel](https://theboroer.github.io/localtunnel-www/) or some other tunneling service like [ngrok](https://ngrok.com/), which will expose the Webhooks console application to the internet.
-    ```bash
-    npm install -g localtunnel
-    ```
-
+1. Install [.Net SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
 2. Start the application executing following command in the **Webhooks.Console** directory.
     ```bash
     dotnet run
     ```
-
-3. Expose the application to the internet using localtunnel and copy the URL returned by the command.
+3. Install [localtunnel](https://theboroer.github.io/localtunnel-www/) or some other tunneling service like [ngrok](https://ngrok.com/), which will expose the Webhooks console application to the internet.
+    ```bash
+    npm install -g localtunnel
+    ```
+4. Expose the application to the internet using localtunnel and copy the URL returned by the command.
     ```bash
     lt --port 5003
     ```

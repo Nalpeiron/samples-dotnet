@@ -1,5 +1,4 @@
 ﻿using System.Security.Cryptography;
-using System.Text;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Webhooks.Console;
@@ -34,11 +33,11 @@ public sealed class PublicRsaKey : IDisposable
         }
     }
     
-    public bool VerifySignature(string plainText, string signature)
+    public bool VerifySignature(byte[] payload, string signature)
     {
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(plainText));
-        return _rsa.VerifyHash(hash, Convert.FromBase64String(signature), HashAlgorithmName.SHA256,
-            RSASignaturePadding.Pkcs1);
+        var hash = SHA256.HashData(payload);
+        return _rsa.VerifyHash(
+            hash, Convert.FromBase64String(signature), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
     }
 
     public void Dispose()

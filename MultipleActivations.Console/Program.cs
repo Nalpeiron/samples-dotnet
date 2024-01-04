@@ -12,6 +12,11 @@ if (string.IsNullOrWhiteSpace(tenantId))
 {
     throw new Exception("Invalid configuration, TenantId not set in appsettings.json");
 }
+var licensingApiUrl = configuration.GetValue<string>("LicensingApiUrl");
+if (string.IsNullOrWhiteSpace(licensingApiUrl))
+{
+    throw new Exception("Invalid configuration, 'LicensingApiUrl' not set in appsettings.json");
+}
 
 Console.WriteLine($"Using tenant: {tenantId}");
 var httpClient = new HttpClient();
@@ -41,10 +46,10 @@ else
 }
 
 var activationsSet = new ActivationsSet(c => c
-    .WithTenant("t_KRwhRp1yl0_9gsZjE5Yjaw")
+    .WithTenant(tenantId)
     .WithSeatId(() => "demo-machine-id-6as5d4a65s5")
     .WithOnlineActivationSupport(onl =>
-        onl.UseLicensingApi(new Uri("https://oriondev.license.zentitle-dev.com:8443"))
+        onl.UseLicensingApi(new Uri(licensingApiUrl))
             .UseHttpClientFactory(() => httpClient))
     .UseStorage(new FileActivationsSetStorage(storageDirectory.FullName))
     .UseStateTransitionCallback(

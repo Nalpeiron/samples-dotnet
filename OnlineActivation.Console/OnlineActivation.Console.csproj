@@ -5,13 +5,17 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <RootNamespace>Demo.Console</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="FluentValidation" Version="11.9.0" />
+      <PackageReference Include="IdentityModel.OidcClient.IdentityTokenValidator" Version="5.2.1" />
       <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
       <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
-      <PackageReference Include="Zentitle.Licensing.Client" Version="0.1.0" />
+      <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="8.0.0" />
+      <PackageReference Include="Sharprompt" Version="2.4.5" />
+      <PackageReference Include="Spectre.Console" Version="0.48.0" />
+      <PackageReference Include="Zentitle.Licensing.Client" Version="1.0.0-alpha1" />
     </ItemGroup>
 
     <ItemGroup>

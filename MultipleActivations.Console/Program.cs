@@ -89,7 +89,7 @@ do
             var newActivation = await activationsSet.CreateActivation(productId);
             Console.WriteLine("Activation added to the set");
             var activationCode = Prompt.Input<string>("Enter activation code");
-            await newActivation.Activate(activationCode);
+            await newActivation.ActivateWithCode(activationCode);
             Console.WriteLine($"Activation {newActivation.Info.Id} activated");
             break;
         case "List activations":

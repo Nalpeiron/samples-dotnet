@@ -1,8 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using OnlineActivation.Console.Options;
 using Sharprompt;
 using Zentitle.Licensing.Client;
 using Zentitle.Licensing.Client.Api;

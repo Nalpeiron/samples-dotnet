@@ -50,8 +50,6 @@ var activation = new Activation(
     //.UseLoggerFactory()
 );
 
-AnsiConsole.Write(new Markup("[red]There are no features to return[/]"));
-
 Console.WriteLine("Initializing...");
 await activation.Initialize();
 const string quitAction = "Quit";

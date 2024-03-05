@@ -3,7 +3,6 @@ using System.Text.Json.Serialization;
 using Sharprompt;
 using Zentitle.Licensing.Client;
 using Zentitle.Licensing.Client.Api;
-using Zentitle.Licensing.Client.States;
 using Output = System.Console;
 
 namespace OnlineActivation.Console;
@@ -64,16 +63,30 @@ public static class ActivationActions
             await activation.PullRemoteState();
             DisplayHelper.ShowActivationInfoPanel(activation);
         });
+    
+    private static readonly ActivationAction PullActivationStateFromLocalStorage = new(
+        "Pull activation state from the local storage",
+        async (activation, _) =>
+        {
+            Output.WriteLine("Pulling current activation state from the local storage...");
+            await activation.PullPersistedState();
+            DisplayHelper.ShowActivationInfoPanel(activation);
+        });
 
     private static readonly ActivationAction RefreshActivationLease = new(
         "Refresh activation lease",
         async (activation, _) =>
         {
             Output.WriteLine("Refreshing current activation...");
-            var refreshed = await activation.Refresh();
-            Output.WriteLine(refreshed
-                ? "Activation successfully refreshed"
-                : "Activation lease period could not be refreshed, please activate again");
+            var previousLeaseExpiry = activation.Info.LeaseExpiry;
+            var refreshed = await activation.RefreshLease();
+            if (!refreshed)
+            {
+                Output.WriteLine("Activation lease period could not be refreshed, please activate again");
+            }
+            
+            var newLeaseExpiry = activation.Info.LeaseExpiry;
+            Output.WriteLine($"Activation lease successfully refreshed from [{previousLeaseExpiry:yyyy-MM-dd HH:mm:ss}] to [{newLeaseExpiry:yyyy-MM-dd HH:mm:ss}]");
         });
 
     private static readonly ActivationAction CheckoutFeature = new(
@@ -167,17 +180,26 @@ public static class ActivationActions
         {
             ActivationState.Active,
             [
-                ShowActivationInfo, PullActivationStateFromServer, CheckoutFeature, ReturnFeature,
-                GetActivationEntitlement, Deactivate
+                ShowActivationInfo, PullActivationStateFromServer, PullActivationStateFromLocalStorage,
+                CheckoutFeature, ReturnFeature, RefreshActivationLease,
+                Deactivate, GetActivationEntitlement 
             ]
         },
         {
-            ActivationState.Expired,
-            [ShowActivationInfo, RefreshActivationLease, PullActivationStateFromServer]
+            ActivationState.LeaseExpired,
+            [
+                ShowActivationInfo, PullActivationStateFromServer, PullActivationStateFromLocalStorage, 
+                RefreshActivationLease, Deactivate, GetActivationEntitlement
+            ]
         },
         {
-            ActivationState.NotActive,
-            [ShowActivationInfo, ActivateWithCode, ActivateWithToken]
+            ActivationState.NotActivated,
+            [ShowActivationInfo, PullActivationStateFromLocalStorage, ActivateWithCode, ActivateWithToken]
+        },
+        {
+            ActivationState.EntitlementNotActive,
+            [ShowActivationInfo, PullActivationStateFromServer, PullActivationStateFromLocalStorage, 
+             ActivateWithCode, ActivateWithToken, GetActivationEntitlement]
         }
     };
 }

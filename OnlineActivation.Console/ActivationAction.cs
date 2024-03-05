@@ -3,8 +3,8 @@ using Zentitle.Licensing.Client;
 
 namespace OnlineActivation.Console;
 
-public sealed class ActivationAction(string name, Func<Activation, IHost, Task> action)
+public sealed class ActivationAction(string name, Func<IActivation, IHost, Task> action)
 {
     public string Name { get; } = name;
-    public Func<Activation, IHost, Task> Action { get; } = action;
+    public Func<IActivation, IHost, Task> Action { get; } = action;
 }

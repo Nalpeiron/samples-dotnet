@@ -6,8 +6,20 @@ namespace OnlineActivation.Console;
 
 public static class DisplayHelper
 {
-    public static void ShowActivationInfoPanel(IActivation activation) 
-        => AnsiConsole.Write(new Panel(activation.Info.ToString()));
+    public static void ShowActivationInfoPanel(IActivation activation)
+    {
+        var statusLine = "State: " + activation.State switch
+        {
+            ActivationState.Active => "[green]Active[/]",
+            ActivationState.LeaseExpired => "[yellow]Lease Expired[/yellow]",
+            ActivationState.EntitlementNotActive => "[darkorange]Entitlement Not Active[/]",
+            ActivationState.NotActivated => "[red]Not Activated[/]",
+            _ => throw new ArgumentOutOfRangeException(nameof(activation.State), activation.State.ToString()),
+        };
+
+        var info = statusLine + Environment.NewLine + activation.Info.ToString().EscapeMarkup();
+        AnsiConsole.Write(new Panel(info));
+    }
 
     public static void ShowFeaturesTable(IEnumerable<ActivationFeature> features, string? keyToHighlight = null)
     {

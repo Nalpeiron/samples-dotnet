@@ -79,7 +79,7 @@ var activation = new Activation(
 Console.WriteLine("Initializing activation...");
 await activation.Initialize();
 
-if (activation.State != ActivationState.NotActive)
+if (activation.State != ActivationState.NotActivated)
 {
     Console.WriteLine($"Activation in unexpected state: '{activation.State}'. Should be 'NotActive'. " +
                       "Please check if the activation persistence file still holds some data.");
@@ -142,7 +142,7 @@ switch (response)
         var offlineRefreshToken = Console.ReadLine();
         Console.WriteLine("Processing received offline refresh token...");
         var oldLeaseExpiration = activation.Info.LeaseExpiry;
-        await activation.RefreshOffline(offlineRefreshToken);
+        await activation.RefreshLeaseOffline(offlineRefreshToken);
         Console.WriteLine($"Activation lease period successfully refreshed from {oldLeaseExpiration} to {activation.Info.LeaseExpiry}");
         break;
     default:

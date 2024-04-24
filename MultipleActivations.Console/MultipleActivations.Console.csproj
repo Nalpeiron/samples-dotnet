@@ -17,7 +17,7 @@
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
         <PackageReference Include="Sharprompt" Version="2.4.5" />
-        <PackageReference Include="Zentitle.Licensing.Client" Version="1.0.0" />
+        <PackageReference Include="Zentitle.Licensing.Client" Version="1.4.1" />
     </ItemGroup>
 
 </Project>

@@ -10,7 +10,7 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
-        <PackageReference Include="Zentitle.Licensing.Client" Version="1.4.1" />
+        <PackageReference Include="Zentitle.Licensing.Client" Version="1.4.5" />
     </ItemGroup>
 
     <ItemGroup>

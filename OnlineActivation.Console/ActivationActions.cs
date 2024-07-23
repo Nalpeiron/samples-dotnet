@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Sharprompt;
+using Spectre.Console;
+using Spectre.Console.Json;
 using Zentitle.Licensing.Client;
 using Zentitle.Licensing.Client.Api;
 using Output = System.Console;
@@ -90,10 +92,12 @@ public static class ActivationActions
         });
 
     private static readonly ActivationAction CheckoutFeature = new(
-        "Checkout consumption/element-pool feature",
+        "Checkout advanced feature",
         async (activation, _) =>
         {
-            var featuresToCheckout = activation.Info.Features.Where(x => x.Available > 0).ToList();
+            var featuresToCheckout = activation.Info.Features
+                .Where(x => x.Type != FeatureType.Bool && x.Available == null || x.Available > 0)
+                .ToList();
             
             if (featuresToCheckout.Count == 0)
             {
@@ -117,7 +121,7 @@ public static class ActivationActions
             await activation.Features.Checkout(featureKey, amountToCheckout);
             
             Output.WriteLine("Feature successfully checked out!");
-            DisplayHelper.ShowFeaturesTable(activation.Info.Features, featureKey);
+            DisplayHelper.ShowFeaturesTable(activation.Info.Features.Where(x => x.Type != FeatureType.Bool), featureKey);
         });
 
     private static readonly ActivationAction ReturnFeature = new(
@@ -159,12 +163,18 @@ public static class ActivationActions
         {
             Output.WriteLine("Retrieving the entitlement...");
             var activationEntitlement = await activation.GetActivationEntitlement();
-            Output.WriteLine("Activation entitlement:");
-            Output.WriteLine(JsonSerializer.Serialize(activationEntitlement, new JsonSerializerOptions
+            var entitlementJson = JsonSerializer.Serialize(activationEntitlement, new JsonSerializerOptions
             {
                 WriteIndented = true,
                 Converters = { new JsonStringEnumConverter() }
-            }));
+            });
+            
+            AnsiConsole.Write(
+                new Panel(
+                        new JsonText(entitlementJson).MemberColor(Color.Blue))
+                    .Header("Activation Entitlement")
+                    .Collapse()
+                    .SquareBorder());
         });
 
     private static readonly ActivationAction Deactivate = new(

@@ -35,9 +35,9 @@ public static class DisplayHelper
             table.AddRow(
                 keyToHighlight == feature.Key ? $"[blue]{feature.Key}[/]" : feature.Key, 
                 feature.Type.ToString(), 
-                feature.Active?.ToString() ?? string.Empty, 
-                feature.Available?.ToString() ?? string.Empty, 
-                feature.Total?.ToString() ?? string.Empty);
+                feature.Active == null ? "" : feature.Active.Value.ToString(),
+                feature.Available == null ? "Unlimited" : feature.Available.Value.ToString(),
+                feature.Total == null ? "Unlimited" : feature.Total.Value.ToString());
         }
         
         AnsiConsole.Write(table);

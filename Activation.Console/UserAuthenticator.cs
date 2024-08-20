@@ -1,13 +1,13 @@
 ﻿using System.Diagnostics;
 using System.Net;
+using Activation.Console.Options;
 using IdentityModel.OidcClient;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using OnlineActivation.Console.Options;
 using Output = System.Console;
 
-namespace OnlineActivation.Console;
+namespace Activation.Console;
 
 public static class UserAuthenticator
 {

@@ -1,6 +1,6 @@
 ﻿using FluentValidation;
 
-namespace OnlineActivation.Console.Options;
+namespace Activation.Console.Options;
 
 public sealed class AccountBasedLicensingOptions
 {

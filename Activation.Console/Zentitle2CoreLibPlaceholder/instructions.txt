@@ -1,0 +1,12 @@
+﻿Download the Zentitle2Core library from https://docs.zentitle.io/developers/the-zentitle2core-library-c++/release-notes 
+and unzip the binaries into to this folder keeping the same structure as in the downloaded zip:
+
+- Zentitle2CoreLibPlaceholder
+  - Linux_x86_64
+    - libZentitle2Core.so
+  - MacOS_arm64
+    - libZentitle2Core.dylib
+  - MacOS_x86_64
+    - libZentitle2Core.dylib
+  - Windows_x86_64
+    - Zentitle2Core.dll

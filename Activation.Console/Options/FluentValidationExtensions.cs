@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
-namespace OnlineActivation.Console.Options;
+namespace Activation.Console.Options;
 
 /// <summary>
 /// https://andrewlock.net/adding-validation-to-strongly-typed-configuration-objects-using-flentvalidation/

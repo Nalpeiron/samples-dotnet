@@ -2,22 +2,23 @@
 using Zentitle.Licensing.Client;
 using Output = System.Console;
 
-namespace OnlineActivation.Console;
+namespace Activation.Console;
 
 public static class DisplayHelper
 {
     public static void ShowActivationInfoPanel(IActivation activation)
     {
-        var statusLine = "State: " + activation.State switch
+        var status = "State: " + activation.State switch
         {
             ActivationState.Active => "[green]Active[/]",
-            ActivationState.LeaseExpired => "[yellow]Lease Expired[/yellow]",
+            ActivationState.LeaseExpired => "[yellow]Lease Expired[/]",
             ActivationState.EntitlementNotActive => "[darkorange]Entitlement Not Active[/]",
             ActivationState.NotActivated => "[red]Not Activated[/]",
             _ => throw new ArgumentOutOfRangeException(nameof(activation.State), activation.State.ToString()),
         };
 
-        var info = statusLine + Environment.NewLine + activation.Info.ToString().EscapeMarkup();
+        var storage = $"Storage: {activation.Info.LocalStorageId}";
+        var info = string.Join(Environment.NewLine, status, storage, Environment.NewLine, activation.Info.ToString().EscapeMarkup());
         AnsiConsole.Write(new Panel(info));
     }
 
@@ -46,6 +47,20 @@ public static class DisplayHelper
     public static void WriteError(string message)
     {
         Output.ForegroundColor = ConsoleColor.Red;
+        Output.WriteLine(message);
+        Output.ResetColor();
+    }
+    
+    public static void WriteSuccess(string message)
+    {
+        Output.ForegroundColor = ConsoleColor.Green;
+        Output.WriteLine(message);
+        Output.ResetColor();
+    }
+    
+    public static void WriteWarning(string message)
+    {
+        Output.ForegroundColor = ConsoleColor.Yellow;
         Output.WriteLine(message);
         Output.ResetColor();
     }

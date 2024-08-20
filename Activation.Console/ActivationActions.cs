@@ -7,7 +7,7 @@ using Zentitle.Licensing.Client;
 using Zentitle.Licensing.Client.Api;
 using Output = System.Console;
 
-namespace OnlineActivation.Console;
+namespace Activation.Console;
 
 public static class ActivationActions
 {
@@ -17,10 +17,10 @@ public static class ActivationActions
         {
             var activationCode = Prompt.Input<string>("Enter activation code");
             var seatName =  Prompt.Input<string>("Enter seat name (keep empty for no seat name)");
-            Output.WriteLine("Activating...");
             await activation.ActivateWithCode(activationCode, string.IsNullOrWhiteSpace(seatName) ? null : seatName);
             DisplayHelper.ShowActivationInfoPanel(activation);
-        });
+        },
+        [null]);
 
     private static readonly ActivationAction ActivateWithToken = new(
         "Activate license with OpenID token",
@@ -47,7 +47,38 @@ public static class ActivationActions
             {
                 DisplayHelper.WriteError($"Activation failed: {ex.Message}");
             }
-        });
+        },
+        [null]);
+    
+    private static readonly ActivationAction GenerateOfflineActivationRequest = new(
+        "Generate offline activation request (for End User Portal)",
+        async (activation, _) =>
+        {
+            DisplayHelper.WriteWarning(
+                "Make sure that the product/entitlement that you want to use for the offline activation has the " +
+                "[Offline Lease Period] initialized, " +
+                "otherwise the offline seat activation will not be possible.");
+            
+            var activationCode = Prompt.Input<string>("Enter activation code");
+            var seatName =  Prompt.Input<string>("Enter seat name (keep empty for no seat name)");
+            Output.WriteLine("Generating activation request token...");
+            var token = await activation.GenerateOfflineActivationRequestToken(activationCode, seatName);
+            Output.WriteLine("Activation request token (copy and use in the End User Portal):");
+            DisplayHelper.WriteSuccess(token);
+        },
+        [null]);
+    
+    private static readonly ActivationAction ActivateOffline = new(
+        "Activate offline (with activation response from End User Portal)",
+        async (activation, _) =>
+        {
+            var offlineActivationResponseToken = 
+                Prompt.Input<string>("Enter offline activation response token");
+            Output.WriteLine("Activating offline...");
+            await activation.ActivateOffline(offlineActivationResponseToken);
+            DisplayHelper.ShowActivationInfoPanel(activation);
+        },
+        [null]);
 
     private static readonly ActivationAction ShowActivationInfo = new(
         "Show activation info", 
@@ -55,7 +86,8 @@ public static class ActivationActions
         {
             DisplayHelper.ShowActivationInfoPanel(activation);
             return Task.CompletedTask;
-        });
+        },
+        [ActivationMode.Online, ActivationMode.Offline, null]);
 
     private static readonly ActivationAction PullActivationStateFromServer = new(
         "Pull activation state from the server",
@@ -64,7 +96,8 @@ public static class ActivationActions
             Output.WriteLine("Pulling current activation state from the server...");
             await activation.PullRemoteState();
             DisplayHelper.ShowActivationInfoPanel(activation);
-        });
+        },
+        [ActivationMode.Online]);
     
     private static readonly ActivationAction PullActivationStateFromLocalStorage = new(
         "Pull activation state from the local storage",
@@ -73,7 +106,8 @@ public static class ActivationActions
             Output.WriteLine("Pulling current activation state from the local storage...");
             await activation.PullPersistedState();
             DisplayHelper.ShowActivationInfoPanel(activation);
-        });
+        },
+        [ActivationMode.Online, ActivationMode.Offline, null]);
 
     private static readonly ActivationAction RefreshActivationLease = new(
         "Refresh activation lease",
@@ -89,7 +123,21 @@ public static class ActivationActions
             
             var newLeaseExpiry = activation.Info.LeaseExpiry;
             Output.WriteLine($"Activation lease successfully refreshed from [{previousLeaseExpiry:yyyy-MM-dd HH:mm:ss}] to [{newLeaseExpiry:yyyy-MM-dd HH:mm:ss}]");
-        });
+        },
+        [ActivationMode.Online]);
+    
+    private static readonly ActivationAction RefreshOfflineActivationLease = new(
+        "Refresh offline activation lease (with refresh token from End User Portal)",
+        async (activation, _) =>
+        {
+            var previousLeaseExpiry = activation.Info.LeaseExpiry;
+            var offlineRefreshToken = Prompt.Input<string>("Enter offline refresh token");
+            Output.WriteLine("Refreshing current offline activation...");
+            await activation.RefreshLeaseOffline(offlineRefreshToken);
+            var newLeaseExpiry = activation.Info.LeaseExpiry;
+            Output.WriteLine($"Activation lease successfully refreshed from [{previousLeaseExpiry:yyyy-MM-dd HH:mm:ss}] to [{newLeaseExpiry:yyyy-MM-dd HH:mm:ss}]");
+        },
+        [ActivationMode.Offline]);
 
     private static readonly ActivationAction CheckoutFeature = new(
         "Checkout advanced feature",
@@ -122,7 +170,8 @@ public static class ActivationActions
             
             Output.WriteLine("Feature successfully checked out!");
             DisplayHelper.ShowFeaturesTable(activation.Info.Features.Where(x => x.Type != FeatureType.Bool), featureKey);
-        });
+        },
+        [ActivationMode.Online]);
 
     private static readonly ActivationAction ReturnFeature = new(
         "Return element-pool feature",
@@ -155,7 +204,37 @@ public static class ActivationActions
             
             Output.WriteLine("Feature successfully returned!");
              DisplayHelper.ShowFeaturesTable(activation.Info.Features, featureKey);
-        });
+        },
+        [ActivationMode.Online]);
+    
+    private static readonly ActivationAction TrackBoolFeatureUsage = new(
+        "Track usage of a bool feature",
+        async (activation, _) =>
+        {
+            var boolFeatures = activation.Info.Features
+                .Where(x => x.Type == FeatureType.Bool)
+                .ToList();
+            
+            if (boolFeatures.Count == 0)
+            {
+                DisplayHelper.WriteError("There are no bool features");
+                return;
+            }
+            
+            Output.WriteLine("Usage can be tracked on the following features:");
+            DisplayHelper.ShowFeaturesTable(boolFeatures);
+
+            var featureKey = 
+                Prompt.Select("Select feature for tracking the usage", boolFeatures.Select(f => f.Key).Append("None"));
+            if (featureKey == "None")
+            {
+                return;
+            }
+            
+            await activation.Features.TrackUsage(featureKey);
+            Output.WriteLine("Feature usage successfully tracked!");
+        },
+        [ActivationMode.Online]);
 
     private static readonly ActivationAction GetActivationEntitlement = new(
         "Get entitlement associated with the activation",
@@ -175,7 +254,8 @@ public static class ActivationActions
                     .Header("Activation Entitlement")
                     .Collapse()
                     .SquareBorder());
-        });
+        },
+        [ActivationMode.Online, ActivationMode.Offline]);
 
     private static readonly ActivationAction Deactivate = new(
         "Deactivate license",
@@ -183,7 +263,20 @@ public static class ActivationActions
         {
             Output.WriteLine("Deactivating the license...");
             await activation.Deactivate();
-        });
+        },
+        [ActivationMode.Online]);
+    
+    private static readonly ActivationAction DeactivateOffline = new(
+        "Deactivate offline license",
+        async (activation, _) =>
+        {
+            Output.WriteLine("Deactivating the offline license...");
+            var offlineDeactivationToken = await activation.DeactivateOffline();
+            Output.WriteLine("Offline deactivation token (copy and use in the End User Portal):");
+            DisplayHelper.WriteSuccess(offlineDeactivationToken);
+        },
+        [ActivationMode.Offline]);
+    
 
     public static readonly Dictionary<ActivationState, ActivationAction[]> AvailableActions = new()
     {
@@ -191,25 +284,32 @@ public static class ActivationActions
             ActivationState.Active,
             [
                 ShowActivationInfo, PullActivationStateFromServer, PullActivationStateFromLocalStorage,
-                CheckoutFeature, ReturnFeature, RefreshActivationLease,
-                Deactivate, GetActivationEntitlement 
+                CheckoutFeature, ReturnFeature, TrackBoolFeatureUsage, RefreshActivationLease,
+                Deactivate, DeactivateOffline, GetActivationEntitlement 
             ]
         },
         {
             ActivationState.LeaseExpired,
             [
                 ShowActivationInfo, PullActivationStateFromServer, PullActivationStateFromLocalStorage, 
-                RefreshActivationLease, Deactivate, GetActivationEntitlement
+                RefreshActivationLease, RefreshOfflineActivationLease, Deactivate, DeactivateOffline,
+                GetActivationEntitlement
             ]
         },
         {
             ActivationState.NotActivated,
-            [ShowActivationInfo, PullActivationStateFromLocalStorage, ActivateWithCode, ActivateWithToken]
+            [
+                ShowActivationInfo, PullActivationStateFromLocalStorage, 
+                ActivateWithCode, ActivateWithToken, GenerateOfflineActivationRequest, ActivateOffline
+            ]
         },
         {
             ActivationState.EntitlementNotActive,
-            [ShowActivationInfo, PullActivationStateFromServer, PullActivationStateFromLocalStorage, 
-             ActivateWithCode, ActivateWithToken, GetActivationEntitlement]
+            [
+                ShowActivationInfo, PullActivationStateFromServer, PullActivationStateFromLocalStorage, 
+                GetActivationEntitlement,
+                ActivateWithCode, ActivateWithToken, GenerateOfflineActivationRequest, ActivateOffline
+            ]
         }
     };
 }

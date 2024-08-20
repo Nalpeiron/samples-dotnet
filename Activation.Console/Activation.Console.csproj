@@ -15,13 +15,19 @@
       <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="8.0.0" />
       <PackageReference Include="Sharprompt" Version="2.4.5" />
       <PackageReference Include="Spectre.Console.Json" Version="0.49.1" />
-      <PackageReference Include="Zentitle.Licensing.Client" Version="1.4.5" />
+      <PackageReference Include="Zentitle.Licensing.Client" Version="2.0.0" />
     </ItemGroup>
 
     <ItemGroup>
       <None Update="appsettings.json">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="Zentitle2CoreLibPlaceholder\**\*.*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
 </Project>

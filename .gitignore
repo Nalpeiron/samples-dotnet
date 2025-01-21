@@ -387,3 +387,7 @@ FodyWeavers.xsd
 # JetBrains Rider
 .idea/
 *.sln.iml
+
+# C++ Core Lib
+Zentitle2CoreLibPlaceholder/
+Net48.Sdk.Sample/*.dll

@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Activation.Console", "Activ
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Webhooks.Console", "Webhooks.Console\Webhooks.Console.csproj", "{0E9C47A5-B0F8-4BD4-AD0E-8DAA41B443F5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Net48.Sdk.Sample", "Net48.Sdk.Sample\Net48.Sdk.Sample.csproj", "{804D4342-6D38-4872-9553-79DA1993FCB5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{0E9C47A5-B0F8-4BD4-AD0E-8DAA41B443F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0E9C47A5-B0F8-4BD4-AD0E-8DAA41B443F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0E9C47A5-B0F8-4BD4-AD0E-8DAA41B443F5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{804D4342-6D38-4872-9553-79DA1993FCB5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{804D4342-6D38-4872-9553-79DA1993FCB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{804D4342-6D38-4872-9553-79DA1993FCB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{804D4342-6D38-4872-9553-79DA1993FCB5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

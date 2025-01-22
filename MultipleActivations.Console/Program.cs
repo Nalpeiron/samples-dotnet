@@ -51,7 +51,7 @@ var activationsSet = new ActivationsSet(c => c
     .WithOnlineActivationSupport(onl =>
         onl.UseLicensingApi(new Uri(licensingApiUrl))
             .UseHttpClientFactory(() => httpClient))
-    .UseStorage(new FileActivationsSetStorage(storageDirectory.FullName))
+    .UseStorage(new PlainTextFileActivationsSetStorage(storageDirectory.FullName))
     .UseStateTransitionCallback(
         (oldState, updatedActivation) =>
         {

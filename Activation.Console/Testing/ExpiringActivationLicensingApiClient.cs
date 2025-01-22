@@ -23,18 +23,18 @@ public sealed class ExpiringActivationLicensingApiClient : LicensingApiClient
         return result;
     }
 
-    public override async Task<ActivationModel> Activate_ActivateAsync(ActivateEntitlementApiRequest request,
+    public override async Task<ActivationStateAndTokenModel> Activate_ActivateAsync(ActivateEntitlementApiRequest request,
         CancellationToken cancellationToken)
     {
         var result = await base.Activate_ActivateAsync(request, cancellationToken);
-        result.LeaseExpiry = DateTime.UtcNow.Add(LeaseExpiry);
+        result.Activation.LeaseExpiry = DateTime.UtcNow.Add(LeaseExpiry);
         return result;
     }
 
-    public override async Task<ActivationModel> Activation_RefreshAsync(CancellationToken cancellationToken)
+    public override async Task<ActivationStateAndTokenModel> Activation_RefreshAsync(CancellationToken cancellationToken)
     {
         var result = await base.Activation_RefreshAsync(cancellationToken);
-        result.LeaseExpiry = DateTime.UtcNow.Add(LeaseExpiry);
+        result.Activation.LeaseExpiry = DateTime.UtcNow.Add(LeaseExpiry);
         return result;
     }
 }

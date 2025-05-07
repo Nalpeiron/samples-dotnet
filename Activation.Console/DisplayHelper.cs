@@ -22,7 +22,7 @@ public static class DisplayHelper
         AnsiConsole.Write(new Panel(info));
     }
 
-    public static void ShowFeaturesTable(IEnumerable<ActivationFeature> features, string? keyToHighlight = null)
+    public static void ShowFeaturesTable(IEnumerable<IActivationFeature> features, string? keyToHighlight = null)
     {
         var table = new Table { ShowRowSeparators = true };
         table.AddColumn("Feature Key");
@@ -34,13 +34,13 @@ public static class DisplayHelper
         foreach (var feature in features)
         {
             table.AddRow(
-                keyToHighlight == feature.Key ? $"[blue]{feature.Key}[/]" : feature.Key, 
-                feature.Type.ToString(), 
+                keyToHighlight == feature.Key ? $"[blue]{feature.Key}[/]" : feature.Key,
+                feature.Type.ToString(),
                 feature.Active == null ? "" : feature.Active.Value.ToString(),
                 feature.Available == null ? "Unlimited" : feature.Available.Value.ToString(),
                 feature.Total == null ? "Unlimited" : feature.Total.Value.ToString());
         }
-        
+
         AnsiConsole.Write(table);
     }
 
@@ -50,14 +50,14 @@ public static class DisplayHelper
         Output.WriteLine(message);
         Output.ResetColor();
     }
-    
+
     public static void WriteSuccess(string message)
     {
         Output.ForegroundColor = ConsoleColor.Green;
         Output.WriteLine(message);
         Output.ResetColor();
     }
-    
+
     public static void WriteWarning(string message)
     {
         Output.ForegroundColor = ConsoleColor.Yellow;

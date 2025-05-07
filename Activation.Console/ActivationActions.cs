@@ -49,7 +49,7 @@ public static class ActivationActions
             }
         },
         [null]);
-    
+
     private static readonly ActivationAction GenerateOfflineActivationRequest = new(
         "Generate offline activation request (for End User Portal)",
         async (activation, _) =>
@@ -58,7 +58,7 @@ public static class ActivationActions
                 "Make sure that the product/entitlement that you want to use for the offline activation has the " +
                 "[Offline Lease Period] initialized, " +
                 "otherwise the offline seat activation will not be possible.");
-            
+
             var activationCode = Prompt.Input<string>("Enter activation code");
             var seatName =  Prompt.Input<string>("Enter seat name (keep empty for no seat name)");
             Output.WriteLine("Generating activation request token...");
@@ -67,12 +67,12 @@ public static class ActivationActions
             DisplayHelper.WriteSuccess(token);
         },
         [null]);
-    
+
     private static readonly ActivationAction ActivateOffline = new(
         "Activate offline (with activation response from End User Portal)",
         async (activation, _) =>
         {
-            var offlineActivationResponseToken = 
+            var offlineActivationResponseToken =
                 Prompt.Input<string>("Enter offline activation response token");
             Output.WriteLine("Activating offline...");
             await activation.ActivateOffline(offlineActivationResponseToken);
@@ -81,7 +81,7 @@ public static class ActivationActions
         [null]);
 
     private static readonly ActivationAction ShowActivationInfo = new(
-        "Show activation info", 
+        "Show activation info",
         (activation, _) =>
         {
             DisplayHelper.ShowActivationInfoPanel(activation);
@@ -98,7 +98,7 @@ public static class ActivationActions
             DisplayHelper.ShowActivationInfoPanel(activation);
         },
         [ActivationMode.Online]);
-    
+
     private static readonly ActivationAction PullActivationStateFromLocalStorage = new(
         "Pull activation state from the local storage",
         async (activation, _) =>
@@ -118,14 +118,16 @@ public static class ActivationActions
             var refreshed = await activation.RefreshLease();
             if (!refreshed)
             {
-                Output.WriteLine("Activation lease period could not be refreshed, please activate again");
+                Output.WriteLine($"Activation lease period could not be refreshed, please activate again. Current lease expiry is {activation.Info.LeaseExpiry}");
             }
-            
-            var newLeaseExpiry = activation.Info.LeaseExpiry;
-            Output.WriteLine($"Activation lease successfully refreshed from [{previousLeaseExpiry:yyyy-MM-dd HH:mm:ss}] to [{newLeaseExpiry:yyyy-MM-dd HH:mm:ss}]");
+            else
+            {
+                var newLeaseExpiry = activation.Info.LeaseExpiry;
+                Output.WriteLine($"Activation lease successfully refreshed from [{previousLeaseExpiry:yyyy-MM-dd HH:mm:ss}] to [{newLeaseExpiry:yyyy-MM-dd HH:mm:ss}]");
+            }
         },
         [ActivationMode.Online]);
-    
+
     private static readonly ActivationAction RefreshOfflineActivationLease = new(
         "Refresh offline activation lease (with refresh token from End User Portal)",
         async (activation, _) =>
@@ -146,29 +148,37 @@ public static class ActivationActions
             var featuresToCheckout = activation.Info.Features
                 .Where(x => x.Type != FeatureType.Bool && x.Available == null || x.Available > 0)
                 .ToList();
-            
+
             if (featuresToCheckout.Count == 0)
             {
                 DisplayHelper.WriteError("There are no features eligible for checkout");
                 return;
             }
-            
+
             Output.WriteLine("Following features can be checked out:");
             DisplayHelper.ShowFeaturesTable(featuresToCheckout);
 
-            var featureKey = 
+            var featureKey =
                 Prompt.Select("Select feature to checkout", featuresToCheckout.Select(f => f.Key).Append("None"));
             if (featureKey == "None")
             {
                 return;
             }
-            
+
             var amountToCheckout = Prompt.Input<int>("Specify amount to checkout");
             Output.WriteLine($"Checking out {amountToCheckout} " +
                              $"{(amountToCheckout > 1 ? "features" : "feature")} with key '{featureKey}'");
-            await activation.Features.Checkout(featureKey, amountToCheckout);
-            
-            Output.WriteLine("Feature successfully checked out!");
+            if (activation.Features.TryGet(featureKey, out var requestedFeature))
+            {
+                await activation.CheckoutFeature(requestedFeature, amountToCheckout);
+                Output.WriteLine("Feature successfully checked out!");
+            }
+            else
+            {
+                DisplayHelper.WriteError($"Feature with key '{featureKey}' not found");
+                return;
+            }
+
             DisplayHelper.ShowFeaturesTable(activation.Info.Features.Where(x => x.Type != FeatureType.Bool), featureKey);
         },
         [ActivationMode.Online]);
@@ -179,34 +189,43 @@ public static class ActivationActions
         {
             var featuresToReturn = activation.Info.Features
                 .Where(x => x.Active > 0 && x.Type == FeatureType.ElementPool).ToList();
-            
+
             if (featuresToReturn.Count == 0)
             {
                 DisplayHelper.WriteError("There are no features eligible for return");
                 return;
             }
-            
+
             Output.WriteLine("Following features can be returned:");
              DisplayHelper.ShowFeaturesTable(featuresToReturn);
 
-            var featureKey = 
+            var featureKey =
                 Prompt.Select("Select feature to return", featuresToReturn.Select(f => f.Key).Append("None"));
             if (featureKey == "None")
             {
                 return;
             }
-            
+
             var amountToCheckout = Prompt.Input<int>("Specify amount to return");
-            
+
             Output.WriteLine($"Returning {amountToCheckout} " +
                              $"{(amountToCheckout > 1 ? "features" : "feature")} with key '{featureKey}'");
-            await activation.Features.Return(featureKey, amountToCheckout);
-            
-            Output.WriteLine("Feature successfully returned!");
-             DisplayHelper.ShowFeaturesTable(activation.Info.Features, featureKey);
+
+            if (activation.Features.TryGet(featureKey, out var requestedFeature))
+            {
+                await activation.ReturnFeature(requestedFeature, amountToCheckout);
+                Output.WriteLine("Feature successfully returned!");
+            }
+            else
+            {
+                DisplayHelper.WriteError($"Feature with key '{featureKey}' not found");
+                return;
+            }
+
+            DisplayHelper.ShowFeaturesTable(activation.Info.Features, featureKey);
         },
         [ActivationMode.Online]);
-    
+
     private static readonly ActivationAction TrackBoolFeatureUsage = new(
         "Track usage of a bool feature",
         async (activation, _) =>
@@ -214,25 +233,32 @@ public static class ActivationActions
             var boolFeatures = activation.Info.Features
                 .Where(x => x.Type == FeatureType.Bool)
                 .ToList();
-            
+
             if (boolFeatures.Count == 0)
             {
                 DisplayHelper.WriteError("There are no bool features");
                 return;
             }
-            
+
             Output.WriteLine("Usage can be tracked on the following features:");
             DisplayHelper.ShowFeaturesTable(boolFeatures);
 
-            var featureKey = 
+            var featureKey =
                 Prompt.Select("Select feature for tracking the usage", boolFeatures.Select(f => f.Key).Append("None"));
             if (featureKey == "None")
             {
                 return;
             }
-            
-            await activation.Features.TrackUsage(featureKey);
-            Output.WriteLine("Feature usage successfully tracked!");
+
+            if (activation.Features.TryGet(featureKey, out var requestedFeature))
+            {
+                await activation.TrackFeatureUsage(requestedFeature);
+                Output.WriteLine("Feature usage successfully tracked!");
+            }
+            else
+            {
+                DisplayHelper.WriteError($"Feature with key '{featureKey}' not found");
+            }
         },
         [ActivationMode.Online]);
 
@@ -247,7 +273,7 @@ public static class ActivationActions
                 WriteIndented = true,
                 Converters = { new JsonStringEnumConverter() }
             });
-            
+
             AnsiConsole.Write(
                 new Panel(
                         new JsonText(entitlementJson).MemberColor(Color.Blue))
@@ -265,7 +291,7 @@ public static class ActivationActions
             await activation.Deactivate();
         },
         [ActivationMode.Online]);
-    
+
     private static readonly ActivationAction DeactivateOffline = new(
         "Deactivate offline license",
         async (activation, _) =>
@@ -276,7 +302,7 @@ public static class ActivationActions
             DisplayHelper.WriteSuccess(offlineDeactivationToken);
         },
         [ActivationMode.Offline]);
-    
+
 
     public static readonly Dictionary<ActivationState, ActivationAction[]> AvailableActions = new()
     {
@@ -285,13 +311,13 @@ public static class ActivationActions
             [
                 ShowActivationInfo, PullActivationStateFromServer, PullActivationStateFromLocalStorage,
                 CheckoutFeature, ReturnFeature, TrackBoolFeatureUsage, RefreshActivationLease,
-                Deactivate, DeactivateOffline, GetActivationEntitlement 
+                Deactivate, DeactivateOffline, GetActivationEntitlement
             ]
         },
         {
             ActivationState.LeaseExpired,
             [
-                ShowActivationInfo, PullActivationStateFromServer, PullActivationStateFromLocalStorage, 
+                ShowActivationInfo, PullActivationStateFromServer, PullActivationStateFromLocalStorage,
                 RefreshActivationLease, RefreshOfflineActivationLease, Deactivate, DeactivateOffline,
                 GetActivationEntitlement
             ]
@@ -299,14 +325,14 @@ public static class ActivationActions
         {
             ActivationState.NotActivated,
             [
-                ShowActivationInfo, PullActivationStateFromLocalStorage, 
+                ShowActivationInfo, PullActivationStateFromLocalStorage,
                 ActivateWithCode, ActivateWithToken, GenerateOfflineActivationRequest, ActivateOffline
             ]
         },
         {
             ActivationState.EntitlementNotActive,
             [
-                ShowActivationInfo, PullActivationStateFromServer, PullActivationStateFromLocalStorage, 
+                ShowActivationInfo, PullActivationStateFromServer, PullActivationStateFromLocalStorage,
                 GetActivationEntitlement,
                 ActivateWithCode, ActivateWithToken, GenerateOfflineActivationRequest, ActivateOffline
             ]

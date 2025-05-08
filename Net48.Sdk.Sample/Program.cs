@@ -75,7 +75,7 @@ namespace Net48.Sdk.Sample
                 await activation.Deactivate();
             }
 
-            Console.WriteLine("Enter the activation code:");
+            Console.Write("Enter the activation code:");
             var activationCode = Console.ReadLine();
 
             Console.WriteLine("Activating license...");

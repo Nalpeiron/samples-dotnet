@@ -1,11 +1,12 @@
-﻿using System.Runtime.InteropServices;
-using Activation.Console;
-using Activation.Console.Options;
+﻿using System.Reflection;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using SharedActivation.Console;
+using SharedActivation.Console.Options;
 using Sharprompt;
 using Zentitle.Licensing.Client;
 
@@ -48,13 +49,13 @@ else
         "- Zentitle2Core C++ library usage is disabled in 'appsettings.json', it won't be loaded and its features won't be available.");
 }
 
+
 var licensingOptions = host.Services.GetRequiredService<IOptions<LicensingOptions>>().Value;
 var httpClientFactory = host.Services.GetRequiredService<IHttpClientFactory>();
 
 var licenseStorage = await LicenseStorage.Initialize(useCoreLibrary);
 
-//activation instance should be a singleton, reused across the codebase
-var activation = new Zentitle.Licensing.Client.Activation(
+var activation = new Zentitle.Licensing.Client.SharedActivation(
     opts =>
     {
         opts.WithTenant(licensingOptions.TenantId)
@@ -71,8 +72,8 @@ var activation = new Zentitle.Licensing.Client.Activation(
             });
 
         opts.WithOnlineActivationSupport(onl => onl
-                .UseLicensingApi(new Uri(licensingOptions.ApiUrl))
-                .UseHttpClientFactory(() => httpClientFactory.CreateClient()));
+            .UseLicensingApi(new Uri(licensingOptions.ApiUrl))
+            .UseHttpClientFactory(() => httpClientFactory.CreateClient()));
 
         if (useCoreLibrary)
         {
@@ -98,28 +99,46 @@ var activation = new Zentitle.Licensing.Client.Activation(
             ;
 
         opts.UseLoggerFactory(host.Services.GetRequiredService<ILoggerFactory>());
-    }
+    },
+    lockingOptions =>
+        lockingOptions.UseSystemLock(
+            $"Global\\Zentitle.Licensing.Client-{Assembly.GetExecutingAssembly().GetName().Name}"
+        )
 );
 
+
 Console.WriteLine("Initializing activation...");
-await activation.Initialize();
+await activation.InitializeWithLock(CancellationToken.None);
 const string quitAction = "Quit";
 string? selectedAction;
 do
 {
-    var activationMode = activation.Info.Mode;
-    selectedAction = Prompt.Select("What do you want to do?",
-        ActivationActions.AvailableActions[activation.State]
+    var (availableActions, state) = await activation.ExecuteWithLock(a =>
+    {
+        var activationMode = a.Info.Mode;
+        return (AvailableActions: ActivationActions.AvailableActions[a.State]
             .Where(action => action.AvailableInModes.Contains(activationMode))
-            .Select(x => x.Name).Append(quitAction));
+            .Select(x => x.Name).Append(quitAction), a.State);
+    }, CancellationToken.None);
+
+    selectedAction = Prompt.Select("What do you want to do?", availableActions);
 
     switch (selectedAction)
     {
         case quitAction:
             break;
         default:
-            var action = ActivationActions.AvailableActions[activation.State].First(x => x.Name == selectedAction);
-            await action.Action(activation, host);
+            // ExecuteExclusiveAction
+            await activation.ExecuteWithLock(async a =>
+            {
+                if (state != a.State)
+                {
+                    DisplayHelper.WriteError("Local activation state changed, operation aborted and state refreshed");
+                    return;
+                }
+                var action = ActivationActions.AvailableActions[a.State].First(x => x.Name == selectedAction);
+                await action.Action(a, host);
+            }, CancellationToken.None);
             break;
     }
 } while (selectedAction != quitAction);

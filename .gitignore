@@ -391,3 +391,6 @@ FodyWeavers.xsd
 # C++ Core Lib
 Zentitle2CoreLibPlaceholder/
 Net48.Sdk.Sample/*.dll
+
+# local appsettings
+appsettings.*.json

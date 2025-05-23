@@ -8,21 +8,11 @@ public static class LicenseStorage
 {
     private const string AppDirectory = "Z2_SharedActivation_Console";
 
-    public static async Task<IActivationStorage> Initialize(bool useCoreLibrary)
+    public static async Task<IActivationStorage> Initialize()
     {
-        IActivationStorage storage;
-        if (useCoreLibrary)
-        {
-
-            storage = Zentitle2Core.SecureActivationStorage.WithAppDirectory(
-                PredefinedSystemFolder.UserData, AppDirectory, "license.encrypted");
-        }
-        else
-        {
-            storage = new PlainTextFileActivationStorage(
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppDirectory,
-                    "license.json"));
-        }
+        IActivationStorage storage = new PlainTextFileActivationStorage(
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppDirectory,
+                "license.json"));
 
         DisplayHelper.WriteWarning($"- Using {storage.GetType().Name} storage with file: {storage.StorageId}");
 

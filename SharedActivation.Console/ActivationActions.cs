@@ -11,6 +11,18 @@ namespace SharedActivation.Console;
 
 public static class ActivationActions
 {
+    private static readonly ActivationAction AcquireLock = new(
+        "Acquire lock",
+        (activation, _) =>
+        {
+            DisplayHelper.WriteSuccess("Lock acquired. Press any key to release.");
+            System.Console.ReadKey(); // Wait for key press
+            Output.WriteLine("Lock released.");
+            return Task.CompletedTask;
+        },
+        [ActivationMode.Online, ActivationMode.Offline, null] // Available in all modes
+    );
+
     private static readonly ActivationAction ActivateWithCode = new(
         "Activate license with code",
         async (activation, _) =>
@@ -20,7 +32,7 @@ public static class ActivationActions
             await activation.ActivateWithCode(activationCode, string.IsNullOrWhiteSpace(seatName) ? null : seatName);
             DisplayHelper.ShowActivationInfoPanel(activation);
         },
-        [null]);
+        [ActivationMode.Online, null]);
 
     private static readonly ActivationAction ShowActivationInfo = new(
         "Show activation info",
@@ -39,7 +51,7 @@ public static class ActivationActions
             await activation.PullRemoteState();
             DisplayHelper.ShowActivationInfoPanel(activation);
         },
-        [ActivationMode.Online]);
+        [ActivationMode.Online, null]);
 
     private static readonly ActivationAction PullActivationStateFromLocalStorage = new(
         "Pull activation state from the local storage",
@@ -49,7 +61,7 @@ public static class ActivationActions
             await activation.PullPersistedState();
             DisplayHelper.ShowActivationInfoPanel(activation);
         },
-        [ActivationMode.Online, ActivationMode.Offline, null]);
+        [ActivationMode.Online, null]);
 
     private static readonly ActivationAction RefreshActivationLease = new(
         "Refresh activation lease",
@@ -69,19 +81,6 @@ public static class ActivationActions
             }
         },
         [ActivationMode.Online]);
-
-    private static readonly ActivationAction RefreshOfflineActivationLease = new(
-        "Refresh offline activation lease (with refresh token from End User Portal)",
-        async (activation, _) =>
-        {
-            var previousLeaseExpiry = activation.Info.LeaseExpiry;
-            var offlineRefreshToken = Prompt.Input<string>("Enter offline refresh token");
-            Output.WriteLine("Refreshing current offline activation...");
-            await activation.RefreshLeaseOffline(offlineRefreshToken);
-            var newLeaseExpiry = activation.Info.LeaseExpiry;
-            Output.WriteLine($"Activation lease successfully refreshed from [{previousLeaseExpiry:yyyy-MM-dd HH:mm:ss}] to [{newLeaseExpiry:yyyy-MM-dd HH:mm:ss}]");
-        },
-        [ActivationMode.Offline]);
 
     private static readonly ActivationAction CheckoutFeature = new(
         "Checkout advanced feature",
@@ -223,7 +222,7 @@ public static class ActivationActions
                     .Collapse()
                     .SquareBorder());
         },
-        [ActivationMode.Online, ActivationMode.Offline]);
+        [ActivationMode.Online]);
 
     private static readonly ActivationAction Deactivate = new(
         "Deactivate license",
@@ -234,17 +233,6 @@ public static class ActivationActions
         },
         [ActivationMode.Online]);
 
-    private static readonly ActivationAction DeactivateOffline = new(
-        "Deactivate offline license",
-        async (activation, _) =>
-        {
-            Output.WriteLine("Deactivating the offline license...");
-            var offlineDeactivationToken = await activation.DeactivateOffline();
-            Output.WriteLine("Offline deactivation token (copy and use in the End User Portal):");
-            DisplayHelper.WriteSuccess(offlineDeactivationToken);
-        },
-        [ActivationMode.Offline]);
-
 
     public static readonly Dictionary<ActivationState, ActivationAction[]> AvailableActions = new()
     {
@@ -253,22 +241,22 @@ public static class ActivationActions
             [
                 ShowActivationInfo, PullActivationStateFromServer, PullActivationStateFromLocalStorage,
                 CheckoutFeature, ReturnFeature, TrackBoolFeatureUsage, RefreshActivationLease,
-                Deactivate, DeactivateOffline, GetActivationEntitlement
+                Deactivate, GetActivationEntitlement, AcquireLock
             ]
         },
         {
             ActivationState.LeaseExpired,
             [
                 ShowActivationInfo, PullActivationStateFromServer, PullActivationStateFromLocalStorage,
-                RefreshActivationLease, RefreshOfflineActivationLease, Deactivate, DeactivateOffline,
-                GetActivationEntitlement
+                RefreshActivationLease, Deactivate,
+                GetActivationEntitlement, AcquireLock
             ]
         },
         {
             ActivationState.NotActivated,
             [
                 ShowActivationInfo, PullActivationStateFromLocalStorage,
-                ActivateWithCode
+                ActivateWithCode, AcquireLock
             ]
         },
         {
@@ -276,7 +264,7 @@ public static class ActivationActions
             [
                 ShowActivationInfo, PullActivationStateFromServer, PullActivationStateFromLocalStorage,
                 GetActivationEntitlement,
-                ActivateWithCode
+                ActivateWithCode, AcquireLock
             ]
         }
     };

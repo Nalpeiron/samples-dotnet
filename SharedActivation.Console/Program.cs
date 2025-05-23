@@ -36,24 +36,10 @@ await host.StartAsync();
 
 var config = host.Services.GetRequiredService<IConfiguration>();
 
-var useCoreLibrary = config.GetValue<bool>("UseCoreLibrary");
-if (useCoreLibrary)
-{
-    DisplayHelper.WriteWarning(
-        "- Using Zentitle2Core C++ library for device fingerprint, secure license storage and offline activation operations");
-    NativeLibrary.SetDllImportResolver(typeof(IActivation).Assembly, Zentitle2CoreLibResolver.DllImportResolver);
-}
-else
-{
-    DisplayHelper.WriteWarning(
-        "- Zentitle2Core C++ library usage is disabled in 'appsettings.json', it won't be loaded and its features won't be available.");
-}
-
-
 var licensingOptions = host.Services.GetRequiredService<IOptions<LicensingOptions>>().Value;
 var httpClientFactory = host.Services.GetRequiredService<IHttpClientFactory>();
 
-var licenseStorage = await LicenseStorage.Initialize(useCoreLibrary);
+var licenseStorage = await LicenseStorage.Initialize();
 
 var activation = new Zentitle.Licensing.Client.SharedActivation(
     opts =>
@@ -62,24 +48,12 @@ var activation = new Zentitle.Licensing.Client.SharedActivation(
             .WithProduct(licensingOptions.ProductId)
             .WithSeatId(() =>
             {
-                if (useCoreLibrary && Prompt.Confirm("Use device fingerprint for seat ID generation?"))
-                {
-                    Console.WriteLine("Generating device fingerprint...");
-                    return Zentitle2Core.DeviceFingerprint.GenerateForCurrentMachine();
-                }
-
                 return Prompt.Input<string>("Enter license seat ID");
             });
 
         opts.WithOnlineActivationSupport(onl => onl
             .UseLicensingApi(new Uri(licensingOptions.ApiUrl))
             .UseHttpClientFactory(() => httpClientFactory.CreateClient()));
-
-        if (useCoreLibrary)
-        {
-            opts.WithOfflineActivationSupport(
-                ofl => ofl.UseTenantRsaKeyModulus(licensingOptions.TenantRsaKeyModulus));
-        }
 
         opts.UseStorage(licenseStorage)
             .UseStateTransitionCallback(
@@ -88,14 +62,6 @@ var activation = new Zentitle.Licensing.Client.SharedActivation(
                     DisplayHelper.WriteSuccess($"Activation state changed from [{oldState}] to [{updatedActivation.State}]");
                     return Task.CompletedTask;
                 })
-            // .ConfigureTestServices(services =>
-            // {
-            //     services.LicensingApiClientFactory =
-            //         (options, httpClient) => new ExpiringActivationLicensingApiClient(options, httpClient)
-            //         {
-            //             LeaseExpiry = TimeSpan.FromSeconds(5)
-            //         };
-            // })
             ;
 
         opts.UseLoggerFactory(host.Services.GetRequiredService<ILoggerFactory>());

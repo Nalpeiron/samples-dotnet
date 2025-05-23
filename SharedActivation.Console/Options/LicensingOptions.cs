@@ -9,9 +9,7 @@ public sealed class LicensingOptions
     public string ApiUrl { get; set; } = default!;
     
     public string TenantId { get; set; } = default!;
-    
-    public string TenantRsaKeyModulus { get; set; } = default!;
-    
+        
     public string ProductId { get; set; } = default!;
 }
 
@@ -26,9 +24,6 @@ public sealed class LicensingOptionsValidator : AbstractValidator<LicensingOptio
                 .WithMessage("{PropertyName} must be a valid URL");
         
         RuleFor(x => x.TenantId)
-            .NotEmpty();
-        
-        RuleFor(x => x.TenantRsaKeyModulus)
             .NotEmpty();
         
         RuleFor(x => x.ProductId)

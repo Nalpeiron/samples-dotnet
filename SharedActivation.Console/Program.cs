@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -22,8 +21,6 @@ var builder = new HostBuilder()
         services.AddHttpClient();
         services.ConfigureWithValidator
             <LicensingOptions, LicensingOptionsValidator>(hostBuilder, LicensingOptions.SectionName);
-        services.ConfigureWithValidator<AccountBasedLicensingOptions, AccountBasedLicensingOptionsValidator>(
-            hostBuilder, AccountBasedLicensingOptions.SectionName);
     })
     .ConfigureLogging((hostingContext, logging) => {
         logging.AddConfiguration(hostingContext.Configuration.GetSection("Logging"));

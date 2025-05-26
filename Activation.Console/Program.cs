@@ -7,11 +7,15 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Sharprompt;
-using Spectre.Console;
 using Zentitle.Licensing.Client;
 
 var builder = new HostBuilder()
-    .ConfigureAppConfiguration(cfg => cfg.AddJsonFile("appsettings.json"))
+    .ConfigureAppConfiguration((hostContext, cfg) =>
+    {
+        cfg.AddJsonFile("appsettings.json");
+        cfg.AddJsonFile($"appsettings.{hostContext.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: true);
+
+    })
     .ConfigureServices((hostBuilder, services) =>
     {
         services.AddHttpClient();
@@ -62,7 +66,7 @@ var activation = new Zentitle.Licensing.Client.Activation(
                     Console.WriteLine("Generating device fingerprint...");
                     return Zentitle2Core.DeviceFingerprint.GenerateForCurrentMachine();
                 }
-                
+
                 return Prompt.Input<string>("Enter license seat ID");
             });
 
@@ -75,7 +79,7 @@ var activation = new Zentitle.Licensing.Client.Activation(
             opts.WithOfflineActivationSupport(
                 ofl => ofl.UseTenantRsaKeyModulus(licensingOptions.TenantRsaKeyModulus));
         }
-        
+
         opts.UseStorage(licenseStorage)
             .UseStateTransitionCallback(
                 (oldState, updatedActivation) =>
@@ -83,14 +87,15 @@ var activation = new Zentitle.Licensing.Client.Activation(
                     DisplayHelper.WriteSuccess($"Activation state changed from [{oldState}] to [{updatedActivation.State}]");
                     return Task.CompletedTask;
                 })
-            .ConfigureTestServices(services =>
-            {
-                // services.LicensingApiClientFactory =
-                //     (options, httpClient) => new ExpiringActivationLicensingApiClient(options, httpClient)
-                //     {
-                //         LeaseExpiry = TimeSpan.FromSeconds(5)
-                //     };
-            });
+            // .ConfigureTestServices(services =>
+            // {
+            //     services.LicensingApiClientFactory =
+            //         (options, httpClient) => new ExpiringActivationLicensingApiClient(options, httpClient)
+            //         {
+            //             LeaseExpiry = TimeSpan.FromSeconds(5)
+            //         };
+            // })
+            ;
 
         opts.UseLoggerFactory(host.Services.GetRequiredService<ILoggerFactory>());
     }
@@ -107,7 +112,7 @@ do
         ActivationActions.AvailableActions[activation.State]
             .Where(action => action.AvailableInModes.Contains(activationMode))
             .Select(x => x.Name).Append(quitAction));
-    
+
     switch (selectedAction)
     {
         case quitAction:

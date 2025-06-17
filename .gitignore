@@ -394,3 +394,4 @@ Net48.Sdk.Sample/*.dll
 
 # local appsettings
 appsettings.*.json
+.DS_Store

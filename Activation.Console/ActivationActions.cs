@@ -310,7 +310,7 @@ public static class ActivationActions
             ActivationState.Active,
             [
                 ShowActivationInfo, PullActivationStateFromServer, PullActivationStateFromLocalStorage,
-                CheckoutFeature, ReturnFeature, TrackBoolFeatureUsage, RefreshActivationLease,
+                CheckoutFeature, ReturnFeature, TrackBoolFeatureUsage, RefreshActivationLease, RefreshOfflineActivationLease,
                 Deactivate, DeactivateOffline, GetActivationEntitlement
             ]
         },

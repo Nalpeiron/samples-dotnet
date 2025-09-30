@@ -1,4 +1,4 @@
-﻿Download the Zentitle2Core library from https://docs.zentitle.io/developers/the-zentitle2core-library-c++/release-notes 
+﻿Download the Zentitle2Core library from https://docs.nalpeiron.com/zentitle2-docs/developers/the-licensing-client-c++/release-notes
 and unzip the binaries into to this folder keeping the same structure as in the downloaded zip:
 
 - Zentitle2CoreLibPlaceholder

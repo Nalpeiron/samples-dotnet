@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using System.Runtime.InteropServices;
+using System.IO;
 
 namespace Activation.Console
 {
@@ -42,11 +43,31 @@ namespace Activation.Console
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
                 RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD))
             {
+                if (IsAlpineLinux())
+                {
+                    if (RuntimeInformation.OSArchitecture == Architecture.Arm64)
+                    {
+                        return NativeLibrary.Load($"{CoreLibPath}/Linux_alpine_aarch64/libZentitle2Core.so");
+                    }
+
+                    return NativeLibrary.Load($"{CoreLibPath}/Linux_alpine_x86_64/libZentitle2Core.so");
+                }
+
+                if (RuntimeInformation.OSArchitecture == Architecture.Arm64)
+                {
+                    return NativeLibrary.Load($"{CoreLibPath}/Linux_aarch64/libZentitle2Core.so");
+                }
+
                 return NativeLibrary.Load($"{CoreLibPath}/Linux_x86_64/libZentitle2Core.so");
             }
 
             // Otherwise, fallback to default import resolver.
             return IntPtr.Zero;
+        }
+
+        private static bool IsAlpineLinux()
+        {
+            return File.Exists("/etc/alpine-release");
         }
     }
 }

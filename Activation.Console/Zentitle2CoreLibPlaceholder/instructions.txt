@@ -2,11 +2,17 @@
 and unzip the binaries into to this folder keeping the same structure as in the downloaded zip:
 
 - Zentitle2CoreLibPlaceholder
-  - Linux_x86_64
-    - libZentitle2Core.so
   - MacOS_arm64
     - libZentitle2Core.dylib
   - MacOS_x86_64
     - libZentitle2Core.dylib
   - Windows_x86_64
     - Zentitle2Core.dll
+  - Linux_x86_64
+    - libZentitle2Core.so	
+  - Linux_aarch64	
+    - libZentitle2Core.so
+  - Linux_alpine_aarch64
+    - libZentitle2Core.so  
+  - Linux_alpine_x86_64
+    - libZentitle2Core.so  

@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 
 namespace Activation.Console.Options;
 
@@ -13,6 +13,8 @@ public sealed class LicensingOptions
     public string TenantRsaKeyModulus { get; set; } = default!;
     
     public string ProductId { get; set; } = default!;
+
+    public string? EditionId { get; set; }
 }
 
 public sealed class LicensingOptionsValidator : AbstractValidator<LicensingOptions>
@@ -28,10 +30,6 @@ public sealed class LicensingOptionsValidator : AbstractValidator<LicensingOptio
         RuleFor(x => x.TenantId)
             .NotEmpty();
         
-        RuleFor(x => x.TenantRsaKeyModulus)
-            .NotEmpty();
-        
-        RuleFor(x => x.ProductId)
-            .NotEmpty();
+        // Product and offline activation settings are needed only after the user chooses to activate.
     }
 }

@@ -1,38 +1,58 @@
-﻿This is a simple console application that demonstrates how you can integrate with the Zentitle2 Webhooks.
+# Webhooks console sample
 
-### Run the application on your localhost
-1. Install [.Net SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
-2. Start the application executing following command in the **Webhooks.Console** directory.
-    ```bash
-    dotnet run
-    ```
-3. Install [localtunnel](https://theboroer.github.io/localtunnel-www/) or some other tunneling service like [ngrok](https://ngrok.com/), which will expose the Webhooks console application to the internet.
-    ```bash
-    npm install -g localtunnel
-    ```
-4. Expose the application to the internet using localtunnel and copy the URL returned by the command.
-    ```bash
-    lt --port 5003
-    ```
+This .NET 10 ASP.NET Core application receives Zentitle2 webhook requests at
+`POST /` and prints their JSON payloads. It also demonstrates verifying the
+`N-Signature` request header with your tenant's public RSA key and printing the
+verification result.
 
-### Configure and test the webhook
-1. Login to Zentitle2 and navigate to **Account** -> **Webhooks**
-2. Click **Add Webhook** and enter the URL received from the localtunnel.
-3. Select the events you want to receive notifications for and click **Save**.
-4. Click **Test** to send a test event to the Webhooks console application.
-5. Check the console application output to verify that the event was received.
+## Requirements
 
-### Explore the webhooks' payload
-According to the events you selected in the previous step, you can now test the Webhooks by performing the appropriate actions in Zentitle2 
-(e.g. create a new entitlement, update it, activate the seat, create a customer, etc. ) and checking the console application output to see the payload received in the webhook's HTTP request's body.
+- The .NET 10 SDK and ASP.NET Core runtime.
+- A Zentitle2 tenant and access to its webhook configuration.
+- A public URL that forwards requests to `http://localhost:5003`, so Zentitle2 can
+  reach the sample running on your machine. Use your preferred tunnel service.
+- Your tenant's public RSA key modulus if you enable signature verification.
 
-### Verify the webhook's signature
-Because the webhook URL is exposed to the internet, it is important to verify that the webhook HTTP request is coming 
-from Zentitle2 and not from a malicious third party.
-Zentitle2 signs the webhook's data with the secret key and includes the signature in the HTTP request's header.
-The webhook consumer can then verify the authenticity and integrity of the received webhook's HTTP payload.
- 
-To enable the signature verification in the demo app, you need to modify the **appsettings.json** file as follows:
-1. Set `ValidateSignature` to `true`
-2. Copy the **RSA Modulus** value from the **Account** -> **Credentials** page in Zentitle2 and set it as the value of the `PublicKeyModulus` 
+This project restores its dependencies from NuGet.org and does not use the
+Zentitle SDK package or the native Zentitle2Core library.
+
+## Configure
+
+Set the following values in [appsettings.json](appsettings.json):
+
+| Setting | Value |
+| --- | --- |
+| `Webhooks.ValidateSignature` | Set `true` to verify incoming signatures, or leave `false` to inspect payloads without verification. |
+| `Webhooks.PublicKeyModulus` | Your tenant's public RSA key modulus, required when verification is enabled. |
+
+The sample prints whether a signature is valid. It does not reject a request
+based on that result.
+
+## Run
+
+From this directory:
+
+```shell
+dotnet run
+```
+
+The application listens on `http://localhost:5003`. Configure your tunnel to
+forward its public HTTPS URL to this address and keep both processes running.
+
+## Configure and test the webhook
+
+1. Open the webhook settings in Zentitle2 and add a webhook.
+2. Enter your tunnel's public URL, using the root path `/`.
+3. Select the events you want to receive and save the webhook.
+4. Use the webhook's **Test** action and check the console for the received
+   request, signature verification result if enabled, and JSON payload.
+5. Trigger a selected event, such as creating an entitlement or activating a
+   seat, and inspect its payload in the console.
+
+For a local check without a Zentitle2 event or tunnel, leave signature
+verification disabled and send a request from another terminal:
+
+```shell
+curl -X POST http://localhost:5003/ -H "Content-Type: application/json" -d '{"sample":true}'
+```
 

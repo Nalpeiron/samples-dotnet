@@ -1,17 +1,43 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Net;
-using Activation.Console.Options;
 using IdentityModel.OidcClient;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using Output = System.Console;
+using Activation.Console.Options;
+using Sharprompt;
 
 namespace Activation.Console;
 
 public static class UserAuthenticator
 {
-    public static async Task<string?> AuthenticateAndReturnIdentityToken(IHost host)
+    public static async Task<string?> AuthenticateAndReturnIdentityToken(IHost host, CancellationToken cancellationToken = default)
+    {
+        if (!cancellationToken.CanBeCanceled)
+        {
+            cancellationToken = host.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping;
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        var source = Prompt.Select("Obtain external OpenID token", [
+            "Sign in with configured identity provider", "Paste external provider token", "Return to previous menu"
+        ], defaultValue: "Sign in with configured identity provider");
+        cancellationToken.ThrowIfCancellationRequested();
+
+        switch (source)
+        {
+            case "Sign in with configured identity provider":
+                return await AuthenticateWithIdentityProvider(host, cancellationToken);
+            case "Paste external provider token":
+                var token = Prompt.Password("Enter external provider OpenID token");
+                cancellationToken.ThrowIfCancellationRequested();
+                return token;
+            default:
+                return null;
+        }
+    }
+
+    private static async Task<string?> AuthenticateWithIdentityProvider(IHost host, CancellationToken cancellationToken)
     {
         var ablOptions = host.Services.GetRequiredService<IOptions<AccountBasedLicensingOptions>>().Value;
 
@@ -20,8 +46,6 @@ public static class UserAuthenticator
             DisplayHelper.WriteError("Account based licensing is not enabled in the configuration.");
             return null;
         }
-        
-        var cancellationToken = host.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping;
         
         // Create a local web server used to receive the authorization response.
         using var listener = new HttpListener();
@@ -53,7 +77,7 @@ public static class UserAuthenticator
             var context = await listener.GetContextAsync().WaitAsync(cancellationToken);
             context.Response.ContentType = "text/plain";
             context.Response.StatusCode = 200;
-            var buffer = "Login completed. Please return to the OnlineActivation Demo console app."u8.ToArray();
+            var buffer = "Login completed. Please return to the Activation console app."u8.ToArray();
             await context.Response.OutputStream.WriteAsync(buffer, cancellationToken);
             await context.Response.OutputStream.FlushAsync(cancellationToken);
             context.Response.Close();
@@ -73,10 +97,9 @@ public static class UserAuthenticator
                 return null;
             }
 
-            Output.WriteLine($"OpenId token: {result.IdentityToken}");
             return result.IdentityToken;
         }
-        catch (TaskCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             DisplayHelper.WriteError("User authentication was cancelled");
             return null;

@@ -1,5 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Activation.Console.Options;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Sharprompt;
 using Spectre.Console;
 using Spectre.Console.Json;
@@ -13,11 +16,14 @@ public static class ActivationActions
 {
     private static readonly ActivationAction ActivateWithCode = new(
         "Activate license with code",
-        async (activation, _) =>
+        async (activation, host) =>
         {
             var activationCode = Prompt.Input<string>("Enter activation code");
             var seatName =  Prompt.Input<string>("Enter seat name (keep empty for no seat name)");
-            await activation.ActivateWithCode(activationCode, string.IsNullOrWhiteSpace(seatName) ? null : seatName);
+            var licensingOptions = host.Services.GetRequiredService<IOptions<LicensingOptions>>().Value;
+            var editionId = activation.Info.ProductId == licensingOptions.ProductId ? licensingOptions.EditionId : null;
+            await activation.ActivateWithCode(activationCode, string.IsNullOrWhiteSpace(seatName) ? null : seatName,
+                string.IsNullOrWhiteSpace(editionId) ? null : editionId);
             DisplayHelper.ShowActivationInfoPanel(activation);
         },
         [null]);
@@ -26,27 +32,18 @@ public static class ActivationActions
         "Activate license with OpenID token",
         async (activation, host) =>
         {
-            var accessToken = await UserAuthenticator.AuthenticateAndReturnIdentityToken(host);
-            if (accessToken == null)
+            var identityToken = await UserAuthenticator.AuthenticateAndReturnIdentityToken(host);
+            if (identityToken == null)
             {
                 return;
             }
             var seatName = Prompt.Input<string>("Enter seat name (keep empty for no seat name)");
+            var licensingOptions = host.Services.GetRequiredService<IOptions<LicensingOptions>>().Value;
+            var editionId = activation.Info.ProductId == licensingOptions.ProductId ? licensingOptions.EditionId : null;
             Output.WriteLine("Activating...");
-            try
-            {
-                await activation.ActivateWithOpenIdToken(accessToken, seatName);
-                DisplayHelper.ShowActivationInfoPanel(activation);
-            }
-            catch (LicensingApiException<ApiError> ex)
-            {
-                var apiError = ex.Result;
-                DisplayHelper.WriteError($"Activation failed ({apiError.ErrorCode}): {apiError.Details}");
-            }
-            catch (LicensingApiException ex)
-            {
-                DisplayHelper.WriteError($"Activation failed: {ex.Message}");
-            }
+            await activation.ActivateWithOpenIdToken(identityToken, seatName,
+                string.IsNullOrWhiteSpace(editionId) ? null : editionId);
+            DisplayHelper.ShowActivationInfoPanel(activation);
         },
         [null]);
 
@@ -145,7 +142,7 @@ public static class ActivationActions
         "Checkout advanced feature",
         async (activation, _) =>
         {
-            var featuresToCheckout = activation.Info.Features
+            var featuresToCheckout = activation.Features
                 .Where(x => x.Type != FeatureType.Bool && x.Available == null || x.Available > 0)
                 .ToList();
 
@@ -179,7 +176,7 @@ public static class ActivationActions
                 return;
             }
 
-            DisplayHelper.ShowFeaturesTable(activation.Info.Features.Where(x => x.Type != FeatureType.Bool), featureKey);
+            DisplayHelper.ShowFeaturesTable(activation.Features.Where(x => x.Type != FeatureType.Bool), featureKey);
         },
         [ActivationMode.Online]);
 
@@ -187,7 +184,7 @@ public static class ActivationActions
         "Return element-pool feature",
         async (activation, _) =>
         {
-            var featuresToReturn = activation.Info.Features
+            var featuresToReturn = activation.Features
                 .Where(x => x.Active > 0 && x.Type == FeatureType.ElementPool).ToList();
 
             if (featuresToReturn.Count == 0)
@@ -222,7 +219,7 @@ public static class ActivationActions
                 return;
             }
 
-            DisplayHelper.ShowFeaturesTable(activation.Info.Features, featureKey);
+            DisplayHelper.ShowFeaturesTable(activation.Features, featureKey);
         },
         [ActivationMode.Online]);
 
@@ -230,7 +227,7 @@ public static class ActivationActions
         "Track usage of a bool feature",
         async (activation, _) =>
         {
-            var boolFeatures = activation.Info.Features
+            var boolFeatures = activation.Features
                 .Where(x => x.Type == FeatureType.Bool)
                 .ToList();
 

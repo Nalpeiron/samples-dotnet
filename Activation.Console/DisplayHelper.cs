@@ -1,5 +1,6 @@
-﻿using Spectre.Console;
+using Spectre.Console;
 using Zentitle.Licensing.Client;
+using Zentitle.Licensing.Client.Api;
 using Output = System.Console;
 
 namespace Activation.Console;
@@ -44,11 +45,32 @@ public static class DisplayHelper
         AnsiConsole.Write(table);
     }
 
+    public static void ShowEntitlementsTable(IEnumerable<EntitlementListItemModel> entitlements)
+    {
+        var table = new Table { ShowRowSeparators = true };
+        table.AddColumn("Entitlement ID");
+        table.AddColumn("Name");
+        table.AddColumn("Product / ID");
+        table.AddColumn("Edition / ID");
+        table.AddColumn("Status");
+        table.AddColumn("Seats used / count");
+        table.AddColumn("Expiry UTC");
+        foreach (var item in entitlements)
+        {
+            table.AddRow(item.Id.EscapeMarkup(), item.Name.EscapeMarkup(),
+                $"{item.ProductName.EscapeMarkup()}\n{item.ProductId.EscapeMarkup()}",
+                $"{item.EditionName.EscapeMarkup()}\n{item.EditionId.EscapeMarkup()}",
+                item.Status.ToString(), $"{item.SeatsUsed} / {item.SeatCount}",
+                item.ExpiryDate?.ToString("u") ?? "No scheduled expiry");
+        }
+        AnsiConsole.Write(table);
+    }
+
     public static void WriteError(string message)
     {
-        Output.ForegroundColor = ConsoleColor.Red;
-        Output.WriteLine(message);
-        Output.ResetColor();
+        AnsiConsole.Write(new Panel(new Text(message))
+            .Header("[red]Operation failed[/]")
+            .BorderColor(Color.Red));
     }
 
     public static void WriteSuccess(string message)

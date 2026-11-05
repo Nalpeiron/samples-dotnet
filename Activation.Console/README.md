@@ -45,6 +45,11 @@ dotnet run
 Follow the interactive prompts. Discovery selects a product and optional edition;
 the server chooses the entitlement. Listing entitlements does not reserve a seat.
 
+Your application chooses the seat ID to identify the licensed machine, user, or
+other entity. Enter a nonempty value and reuse it for the same entity. See
+[Configuring the Activation](https://docs.nalpeiron.com/zentitle2-docs/developers/the-licensing-client-.net/configuring-the-activation).
+Empty or whitespace-only input prompts again without restarting the activation flow.
+
 The sample prints its activation storage path at startup. Clearing local data
 does not deactivate the server-side seat.
 

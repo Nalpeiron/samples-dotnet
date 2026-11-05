@@ -163,7 +163,16 @@ async Task<SharedActivation> CreateActivation(string productId)
                         return Zentitle2Core.DeviceFingerprint.GenerateForCurrentMachine();
                     }
 
-                    return Prompt.Input<string>("Enter license seat ID");
+                    Console.WriteLine("Your application chooses the seat ID to identify the licensed machine, user, or other entity.");
+                    while (true)
+                    {
+                        var seatId = Prompt.Input<string>("Enter license seat ID");
+                        if (!string.IsNullOrWhiteSpace(seatId))
+                        {
+                            return seatId;
+                        }
+                        DisplayHelper.WriteError("A license seat ID is required.");
+                    }
                 });
 
             opts.WithOnlineActivationSupport(onl => onl

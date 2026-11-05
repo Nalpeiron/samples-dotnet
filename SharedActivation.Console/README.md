@@ -43,8 +43,15 @@ From this directory:
 dotnet run
 ```
 
-Enter a seat ID, choose **Activate license with code**, and enter your activation
-code. Feature operations require the corresponding features on your entitlement.
+Choose **Activate license with code**, enter your activation code and optional
+seat name, then enter a seat ID when prompted. Feature operations require the
+corresponding features on your entitlement.
+
+Your application chooses the seat ID to identify the licensed machine, user, or
+other entity. Enter a nonempty value and reuse it for the same entity, including
+across instances sharing an activation. See
+[Configuring the Activation](https://docs.nalpeiron.com/zentitle2-docs/developers/the-licensing-client-.net/configuring-the-activation).
+Empty or whitespace-only input prompts again without restarting the activation flow.
 
 To observe sharing and locking:
 

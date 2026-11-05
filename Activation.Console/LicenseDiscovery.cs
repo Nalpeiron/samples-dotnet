@@ -48,7 +48,8 @@ public sealed class LicenseDiscovery(IActivationCredentialsClient client)
         return null;
     }
 
-    public async Task<bool> ActivateSelectedProduct(DiscoveredActivation selection, ISharedActivation activation)
+    public async Task<bool> ActivateSelectedProduct(DiscoveredActivation selection, ISharedActivation activation,
+        CancellationToken stopping)
     {
         try
         {
@@ -58,7 +59,7 @@ public sealed class LicenseDiscovery(IActivationCredentialsClient client)
                 await a.ActivateWithCredentialsSession(selection.Session,
                     string.IsNullOrWhiteSpace(seatName) ? null : seatName, selection.EditionId);
                 DisplayHelper.ShowActivationInfoPanel(a);
-            }, CancellationToken.None);
+            }, stopping);
             return true;
         }
         catch (ActivationCredentialsSessionExpiredException)

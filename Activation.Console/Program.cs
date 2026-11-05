@@ -10,6 +10,7 @@ using Sharprompt;
 using System.Runtime.InteropServices;
 using Zentitle.Licensing.Client;
 using Zentitle.Licensing.Client.ActivationCredentials;
+using Zentitle.Licensing.Client.Concurrency;
 
 if (args.Contains("--help"))
 {
@@ -75,7 +76,7 @@ while (!stopping.IsCancellationRequested)
                     continue;
                 }
                 var canResume = await savedActivation.ExecuteWithLock(a => a.State != ActivationState.NotActivated,
-                    CancellationToken.None);
+                    stopping);
                 if (canResume)
                 {
                     DisplayHelper.WriteWarning("Activate again clears the saved local activation data. It does not deactivate the server-side seat.");
@@ -135,7 +136,7 @@ while (!stopping.IsCancellationRequested)
         {
             try
             {
-                if (!await discovery.ActivateSelectedProduct(selection, activation))
+                if (!await discovery.ActivateSelectedProduct(selection, activation, stopping))
                 {
                     continue;
                 }
@@ -152,7 +153,8 @@ while (!stopping.IsCancellationRequested)
             break;
         }
     }
-    catch (OperationCanceledException) when (stopping.IsCancellationRequested)
+    catch (Exception error) when (stopping.IsCancellationRequested &&
+        error is OperationCanceledException or SystemLockAcquisitionException)
     {
         break;
     }
@@ -221,9 +223,9 @@ async Task<SharedActivation?> CreateActivation(string productId)
     try
     {
         Console.WriteLine($"Initializing activation for product {productId}...");
-        await activation.InitializeWithLock(CancellationToken.None);
+        await activation.InitializeWithLock(stopping);
         var productMatches = await activation.ExecuteWithLock(a => a.Info.ProductId == productId,
-            CancellationToken.None);
+            stopping);
         if (!productMatches)
         {
             DisplayHelper.WriteWarning("The stored product changed while initializing. Reloading the current activation.");
@@ -251,7 +253,7 @@ async Task<bool> RunActivationMenu(ISharedActivation activation, string productI
             return (ActivationActions.AvailableActions[a.State]
                 .Where(action => action.AvailableInModes.Contains(activationMode)).ToArray(), a.State, activationMode,
                 a.Info.Id, a.Info.ProductId);
-        }, CancellationToken.None);
+        }, stopping);
         if (storedProductId != productId)
         {
             DisplayHelper.WriteWarning("The stored product changed. Reloading the current activation.");
@@ -284,7 +286,7 @@ async Task<bool> RunActivationMenu(ISharedActivation activation, string productI
                 }
                 await action.Action(a, host);
                 return true;
-            }, CancellationToken.None);
+            }, stopping);
             if (!productMatches)
             {
                 return false;

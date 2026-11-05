@@ -27,7 +27,7 @@ Set the following values in [appsettings.json](appsettings.json):
 
 | Setting | Value |
 | --- | --- |
-| `Licensing.ApiUrl` | Your Zentitle2 Licensing API base URL. |
+| `Licensing.ApiUrl` | Your Zentitle2 Licensing API base URL. Copy it from Administration > API Credentials > Licensing API. |
 | `Licensing.TenantId` | Your tenant ID. |
 | `Licensing.ProductId` | The product ID associated with your entitlement. |
 

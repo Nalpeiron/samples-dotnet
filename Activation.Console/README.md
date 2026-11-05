@@ -22,7 +22,7 @@ Set the following values in [appsettings.json](appsettings.json):
 
 | Setting | Value |
 | --- | --- |
-| `Licensing.ApiUrl` | Your Zentitle2 Licensing API base URL. |
+| `Licensing.ApiUrl` | Your Zentitle2 Licensing API base URL. Copy it from Administration > API Credentials > Licensing API. |
 | `Licensing.TenantId` | Your tenant ID. |
 | `Licensing.ProductId` | Required for direct activation; optional for entitlement discovery. Activation-code authentication still requires the code's product ID. |
 | `Licensing.EditionId` | Optional edition for direct activation; leave empty for server selection. Discovery selects its edition independently. |

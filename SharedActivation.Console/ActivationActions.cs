@@ -86,7 +86,7 @@ public static class ActivationActions
         "Checkout advanced feature",
         async (activation, _) =>
         {
-            var featuresToCheckout = activation.Info.Features
+            var featuresToCheckout = activation.Features
                 .Where(x => x.Type != FeatureType.Bool && x.Available == null || x.Available > 0)
                 .ToList();
 
@@ -120,7 +120,7 @@ public static class ActivationActions
                 return;
             }
 
-            DisplayHelper.ShowFeaturesTable(activation.Info.Features.Where(x => x.Type != FeatureType.Bool), featureKey);
+            DisplayHelper.ShowFeaturesTable(activation.Features.Where(x => x.Type != FeatureType.Bool), featureKey);
         },
         [ActivationMode.Online]);
 
@@ -128,7 +128,7 @@ public static class ActivationActions
         "Return element-pool feature",
         async (activation, _) =>
         {
-            var featuresToReturn = activation.Info.Features
+            var featuresToReturn = activation.Features
                 .Where(x => x.Active > 0 && x.Type == FeatureType.ElementPool).ToList();
 
             if (featuresToReturn.Count == 0)
@@ -163,7 +163,7 @@ public static class ActivationActions
                 return;
             }
 
-            DisplayHelper.ShowFeaturesTable(activation.Info.Features, featureKey);
+            DisplayHelper.ShowFeaturesTable(activation.Features, featureKey);
         },
         [ActivationMode.Online]);
 
@@ -171,7 +171,7 @@ public static class ActivationActions
         "Track usage of a bool feature",
         async (activation, _) =>
         {
-            var boolFeatures = activation.Info.Features
+            var boolFeatures = activation.Features
                 .Where(x => x.Type == FeatureType.Bool)
                 .ToList();
 

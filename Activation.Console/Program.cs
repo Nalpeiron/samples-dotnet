@@ -70,6 +70,10 @@ while (!stopping.IsCancellationRequested)
             if (!string.IsNullOrWhiteSpace(storedData.ActivationState?.ProductId))
             {
                 using var savedActivation = await CreateActivation(storedData.ActivationState.ProductId);
+                if (savedActivation == null)
+                {
+                    continue;
+                }
                 var canResume = await savedActivation.ExecuteWithLock(a => a.State != ActivationState.NotActivated,
                     CancellationToken.None);
                 if (canResume)
@@ -83,7 +87,7 @@ while (!stopping.IsCancellationRequested)
                     }
                     if (choice == "Resume existing activation")
                     {
-                        if (await RunActivationMenu(savedActivation))
+                        if (await RunActivationMenu(savedActivation, storedData.ActivationState.ProductId))
                         {
                             break;
                         }
@@ -120,7 +124,13 @@ while (!stopping.IsCancellationRequested)
             discovery = null;
             continue;
         }
-        using var activation = await CreateActivation(selection?.ProductId ?? licensingOptions.ProductId);
+        var productId = selection?.ProductId ?? licensingOptions.ProductId;
+        using var activation = await CreateActivation(productId);
+        if (activation == null)
+        {
+            discovery = null;
+            continue;
+        }
         if (discovery != null && selection != null)
         {
             try
@@ -137,7 +147,7 @@ while (!stopping.IsCancellationRequested)
             }
         }
         discovery = null;
-        if (await RunActivationMenu(activation))
+        if (await RunActivationMenu(activation, productId))
         {
             break;
         }
@@ -148,7 +158,7 @@ while (!stopping.IsCancellationRequested)
     }
 }
 
-async Task<SharedActivation> CreateActivation(string productId)
+async Task<SharedActivation?> CreateActivation(string productId)
 {
     var activation = new SharedActivation(
         opts =>
@@ -212,14 +222,14 @@ async Task<SharedActivation> CreateActivation(string productId)
     {
         Console.WriteLine($"Initializing activation for product {productId}...");
         await activation.InitializeWithLock(CancellationToken.None);
-        await activation.ExecuteWithLock(a =>
+        var productMatches = await activation.ExecuteWithLock(a => a.Info.ProductId == productId,
+            CancellationToken.None);
+        if (!productMatches)
         {
-            if (a.Info.ProductId != productId)
-            {
-                throw new InvalidOperationException("The stored product changed while initializing. Restart to load the current activation.");
-            }
-            return Task.CompletedTask;
-        }, CancellationToken.None);
+            DisplayHelper.WriteWarning("The stored product changed while initializing. Reloading the current activation.");
+            activation.Dispose();
+            return null;
+        }
         return activation;
     }
     catch
@@ -229,18 +239,24 @@ async Task<SharedActivation> CreateActivation(string productId)
     }
 }
 
-async Task<bool> RunActivationMenu(ISharedActivation activation)
+async Task<bool> RunActivationMenu(ISharedActivation activation, string productId)
 {
     const string back = "Return to main menu";
     const string quit = "Quit";
     while (!stopping.IsCancellationRequested)
     {
-        var (availableActions, state, mode) = await activation.ExecuteWithLock(a =>
+        var (availableActions, state, mode, activationId, storedProductId) = await activation.ExecuteWithLock(a =>
         {
             var activationMode = a.Info.Mode;
             return (ActivationActions.AvailableActions[a.State]
-                .Where(action => action.AvailableInModes.Contains(activationMode)).ToArray(), a.State, activationMode);
+                .Where(action => action.AvailableInModes.Contains(activationMode)).ToArray(), a.State, activationMode,
+                a.Info.Id, a.Info.ProductId);
         }, CancellationToken.None);
+        if (storedProductId != productId)
+        {
+            DisplayHelper.WriteWarning("The stored product changed. Reloading the current activation.");
+            return false;
+        }
         var selected = Prompt.Select("Activation operations", availableActions.Select(action => action.Name).Concat([back, quit]),
             defaultValue: availableActions[0].Name);
         if (selected == quit)
@@ -254,15 +270,25 @@ async Task<bool> RunActivationMenu(ISharedActivation activation)
         var action = availableActions.First(candidate => candidate.Name == selected);
         try
         {
-            await activation.ExecuteWithLock(async a =>
+            var productMatches = await activation.ExecuteWithLock(async a =>
             {
-                if (state != a.State || mode != a.Info.Mode)
+                if (a.Info.ProductId != productId)
                 {
-                    DisplayHelper.WriteError("Local activation state or mode changed, operation aborted and state refreshed");
-                    return;
+                    DisplayHelper.WriteWarning("The stored product changed, operation aborted. Reloading the current activation.");
+                    return false;
+                }
+                if (activationId != a.Info.Id || state != a.State || mode != a.Info.Mode)
+                {
+                    DisplayHelper.WriteError("Local activation, state, or mode changed, operation aborted and menu refreshed");
+                    return true;
                 }
                 await action.Action(a, host);
+                return true;
             }, CancellationToken.None);
+            if (!productMatches)
+            {
+                return false;
+            }
         }
         catch (Exception error) when (ErrorHandler.IsRecoverable(error, stopping))
         {

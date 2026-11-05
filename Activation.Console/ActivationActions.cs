@@ -37,6 +37,11 @@ public static class ActivationActions
             {
                 return;
             }
+            if (string.IsNullOrWhiteSpace(identityToken))
+            {
+                DisplayHelper.WriteError("An external provider OpenID token is required.");
+                return;
+            }
             var seatName = Prompt.Input<string>("Enter seat name (keep empty for no seat name)");
             var licensingOptions = host.Services.GetRequiredService<IOptions<LicensingOptions>>().Value;
             var editionId = activation.Info.ProductId == licensingOptions.ProductId ? licensingOptions.EditionId : null;

@@ -48,24 +48,36 @@ public sealed class LicenseDiscovery(IActivationCredentialsClient client)
         return null;
     }
 
-    public async Task<bool> ActivateSelectedProduct(DiscoveredActivation selection, ISharedActivation activation,
-        CancellationToken stopping)
+    public async Task<DiscoveryActivationResult> ActivateSelectedProduct(DiscoveredActivation selection,
+        ISharedActivation activation, CancellationToken stopping)
     {
         try
         {
-            await activation.ExecuteWithLock(async a =>
+            return await activation.ExecuteWithLock(async a =>
             {
+                var info = a.Info;
+                if (info.ProductId != selection.ProductId)
+                {
+                    DisplayHelper.WriteWarning("The stored product changed. Activation aborted; reloading the current activation.");
+                    return DiscoveryActivationResult.ActivationChanged;
+                }
+                // Discovery starts with cleared local activation data.
+                if (a.State != ActivationState.NotActivated || info.Id != null || info.Mode != null)
+                {
+                    DisplayHelper.WriteWarning("The stored activation changed. Activation aborted; reloading the current activation.");
+                    return DiscoveryActivationResult.ActivationChanged;
+                }
                 var seatName = Prompt.Input<string>("Enter seat name (keep empty for no seat name)");
                 await a.ActivateWithCredentialsSession(selection.Session,
                     string.IsNullOrWhiteSpace(seatName) ? null : seatName, selection.EditionId);
                 DisplayHelper.ShowActivationInfoPanel(a);
+                return DiscoveryActivationResult.Activated;
             }, stopping);
-            return true;
         }
         catch (ActivationCredentialsSessionExpiredException)
         {
             ResetExpiredSession();
-            return false;
+            return DiscoveryActivationResult.CredentialsExpired;
         }
     }
 
@@ -77,3 +89,10 @@ public sealed class LicenseDiscovery(IActivationCredentialsClient client)
 }
 
 public sealed record DiscoveredActivation(ActivationCredentialsSession Session, string ProductId, string? EditionId);
+
+public enum DiscoveryActivationResult
+{
+    Activated,
+    CredentialsExpired,
+    ActivationChanged
+}

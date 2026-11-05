@@ -136,8 +136,13 @@ while (!stopping.IsCancellationRequested)
         {
             try
             {
-                if (!await discovery.ActivateSelectedProduct(selection, activation, stopping))
+                var result = await discovery.ActivateSelectedProduct(selection, activation, stopping);
+                if (result != DiscoveryActivationResult.Activated)
                 {
+                    if (result == DiscoveryActivationResult.ActivationChanged)
+                    {
+                        discovery = null;
+                    }
                     continue;
                 }
             }
